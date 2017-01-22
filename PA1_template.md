@@ -10,10 +10,10 @@ options(scipen = 999, digits = 4)
 
 ```r
 activityDF <- read.csv("activity.csv")
-good <- complete.cases(activityDF$steps)
-hist(activityDF$steps[good],
-     col = "red", xlab = "Steps in 5 min interval",
-     main = "Histogram of steps in 5 min interval")
+stepsByDay <- aggregate(activityDF$steps, by = list(date = activityDF$date),
+                        FUN = sum, na.rm = TRUE)
+hist(stepsByDay$x, col = "red", xlab = "Total number of steps taken each day",
+     main = "Histogram of total number of steps taken each day")
 ```
 
 ![](PA1_template_files/figure-html/loadData_hist-1.png)<!-- -->
@@ -21,9 +21,6 @@ hist(activityDF$steps[good],
 ## What is mean total number of steps taken per day?
 
 ```r
-stepsByDay <- aggregate(activityDF$steps, by = list(date = activityDF$date),
-                        FUN = sum, na.rm = TRUE)
-
 meanStepsByDay <- mean(stepsByDay$x)
 medianStepsByDay <- median(stepsByDay$x)
 ```
@@ -44,16 +41,18 @@ plot(stepsBy5MinInt$interval, stepsBy5MinInt$x, type = "l",
 ## Imputing missing values
 
 ```r
-avgStepsByDay <- aggregate(activityDF$steps, by = list(date = activityDF$date),
+good <- complete.cases(activityDF)
+missingCount <- nrow(activityDF[!good, ])
+avgStepsByInt <- aggregate(activityDF$steps, by = list(interval = activityDF$interval),
                         FUN = mean, na.rm = TRUE)
 
 len <- nrow(activityDF)
 stepsFilled <- vector(mode = "integer", length = len)
 for (i in 1:len) {
         if (is.na(activityDF$steps[i])) {
-                indx <- which(avgStepsByDay$date == activityDF$date[i])
-                if (!is.nan(avgStepsByDay$x[indx]))     {
-                        stepsFilled[i] <- avgStepsByDay$x[indx]        
+                indx <- which(avgStepsByInt$interval == activityDF$interval[i])
+                if (!is.nan(avgStepsByInt$x[indx]))     {
+                        stepsFilled[i] <- round(avgStepsByInt$x[indx])
                 }
                 else    {
                         stepsFilled[i] <- 0
@@ -66,23 +65,24 @@ for (i in 1:len) {
 
 filledActivityDF <- activityDF
 filledActivityDF$steps <- stepsFilled
+stepsByDay <- aggregate(filledActivityDF$steps, by = 
+                                list(date = filledActivityDF$date), FUN = sum)
 
-hist(filledActivityDF$steps,
-     col = "red", xlab = "Filled Steps in 5 min interval",
-     main = "Histogram of filled steps in 5 min interval")
+hist(stepsByDay$x, col = "red", xlab = "Total number of filled steps taken each day",
+     main = "Histogram of total number of filled steps taken each day")
 ```
 
 ![](PA1_template_files/figure-html/missing_value-1.png)<!-- -->
 
 ```r
-stepsByDay <- aggregate(filledActivityDF$steps, by = 
-                                list(date = filledActivityDF$date), FUN = sum)
 meanStepsByDay <- mean(stepsByDay$x)
 medianStepsByDay <- median(stepsByDay$x)
 ```
 
-Mean number of steps taken each day = 9354.2295  
-Median number of steps taken each day = 10395
+Total missing or NA count of activities = 2304  
+**Missing value imputed using mean value for the given interval**  
+Mean number of steps taken each day after imputing missing values = 10765.6393  
+Median number of steps taken each day after imputing missing values = 10762
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
